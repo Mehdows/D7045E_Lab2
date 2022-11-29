@@ -1,88 +1,49 @@
-class triangle{
-    constructor(pos){
-        this.position = pos;
-        this.pointers = [];
+
+function addY(){
+    for (let i = 0; i < pointCoords.length; i += 2){
+        pointCoords[i] = pointCoords[i] + pointCoords[i+1]*0.01;
     }
-    addPointer(pointer){
-        this.pointers.push(pointer);
-    }
-    getPointers(){
-        return this.pointers;
-    }
-    getPosition(){
-        return this.position;
+}
+
+function removeY(){
+    for (let i = 0; i < pointCoords.length; i += 2){
+        pointCoords[i] = pointCoords[i] - pointCoords[i+1]*0.01;
     }
 }
 
 
-function isAbove(x, y, x1, y1, x2, y2){
-    return ((y - y1) * (x2 - x1) - (x - x1) * (y2 - y1) > 0);
-}
-
-function triangulate(sortedArr){
-    let Arr = [...sortedArr];
-    let res = [];
-    let lowerhull = [];
-    let upperhull = [];
-
-    // Add first triangle
-    [res, upperhull, lowerhull] = addFirstTriangle(Arr, res);
-    console.log(lowerhull);
-    console.log(upperhull);
-    // Add rest of triangles
-    for (let i = 0; i < Arr.length; i += 2){
-        console.log(Arr[i], Arr[i+1]);
-        x = Arr[i];
-        y = Arr[i+1];
-        
-        res, upperhull = addTriangle(upperhull, true, res, x, y);
-        res, lowerhull = addTriangle(lowerhull, false, res, x, y);
-        lowerhull.push(x);
-        lowerhull.push(y);
-        upperhull.push(x);
-        upperhull.push(y);
-
+function mergeSort(arr){
+    if(arr.length == 2){
+        return arr;
     }
-    console.log(lowerhull);
-    console.log(upperhull);
-    console.log(res);
+    let middle = arr.length/2;
+    if (arr.length/2 % 2 == 1){
+        middle = arr.length/2 + 1;
+    }
+    
+    var left = arr.slice(0, middle);
+    var right = arr.slice(middle, arr.length);
+    return merge(mergeSort(left), mergeSort(right));
 }
 
-function addTriangle(hull, pos, res, x3, y3){
-    for (let j = 0; j < hull.length-2; j += 2){
-        x1 = hull[j];
-        y1 = hull[j+1];
-        x2 = hull[j+2];
-        y2 = hull[j+3];
-        
-        if (isAbove(x3, y3, x2, y2, x1, y1) == pos){
-            let pos = [x1, y1, x2, y2, x3, y3];
-            let tri = new triangle(pos);
-            res.push(tri);
-            hull.splice(j+2, 2);
+function merge(right, left){
+    let result = [];
+    while (right.length > 1 && left.length > 1){
+        if (right[0] < left[0]){
+            result.push(right.shift());
+            result.push(right.shift());
+        } else {
+            result.push(left.shift());
+            result.push(left.shift());
         }
     }
-    return res, hull;
-}
-
-function addFirstTriangle(Arr, res){
-    // Add first triangle
-    let upperhull = [];
-    let lowerhull = []
-
-    upperhull = upperhull.concat(Arr.slice(0, 2));
-    if (Arr[1] < upperhull[1]){
-        upperhull = upperhull.concat(Arr.slice(2, 4));
-    } else {
-        lowerhull = lowerhull.concat(Arr.slice(2, 4));
+    while (right.length > 1){
+        result.push(right.shift());
+        result.push(right.shift());
     }
-    let splice = Arr.slice(4, 6);
-    upperhull = upperhull.concat(splice);
-    lowerhull = lowerhull.concat(splice);
-    tri = new triangle(Arr.splice(0, 6))
-    res.push(tri);
-    return [res, upperhull, lowerhull];
+    while (left.length > 1){
+        result.push(left.shift());
+        result.push(left.shift());
+    }
+    return result;
 }
-
-
-triangulate([1, 2, 2, 1, 3, 2, 4, 5, 5, 1, 6, 3]);

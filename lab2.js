@@ -107,7 +107,6 @@ function isdotsOverlapping(x1, y1, x2, y2, r1, r2){
     return false;
 }
 
-
 function addY(){
     for (let i = 0; i < pointCoords.length; i += 2){
         pointCoords[i] = pointCoords[i] + pointCoords[i+1]*0.01;
@@ -156,8 +155,25 @@ function merge(right, left){
     }
     return result;
 }
+class triangle{
+    constructor(pos){
+        this.position = pos;
+        this.pointers = [];
+    }
+    addPointer(pointer){
+        this.pointers.push(pointer);
+    }
+    getPointers(){
+        return this.pointers;
+    }
+    getPosition(){
+        return this.position;
+    }
+}
+
+
 function isAbove(x, y, x1, y1, x2, y2){
-    return (y - y1) * (x2 - x1) - (x - x1) * (y2 - y1) > 0;
+    return ((y - y1) * (x2 - x1) - (x - x1) * (y2 - y1) > 0);
 }
 
 function triangulate(sortedArr){
@@ -165,25 +181,66 @@ function triangulate(sortedArr){
     let res = [];
     let lowerhull = [];
     let upperhull = [];
-    // Add first triangle
-    upperhull.push.apply(Arr.splice(0, 1));
-    if (Arr[1] < upperhull[1]){
-        upperhull.push.apply(Arr.splice(0, 1));
-    } else {
-        lowerhull.push.apply(Arr.splice(0, 1));
-    }
-    upperhull.push.apply(Arr.splice(0, 1));
-    
-    // Add rest of triangles
-    for (let i = 0; i < Arr.length; i++){
 
-        for (let j = 1; j <= upperhull.length; j++){
-            if (isAbove(Arr[i], Arr[i+1], upperhull[j], upperhull[j+1], upperhull[j+2], upperhull[j+3])){
-                
-            }
+    // Add first triangle
+    [res, upperhull, lowerhull] = addFirstTriangle(Arr, res);
+    // Add rest of triangles
+    for (let i = 0; i < Arr.length; i += 2){
+        console.log(Arr[i], Arr[i+1]);
+        let x = Arr[i];
+        let y = Arr[i+1];
+        console.log(upperhull, lowerhull);
+        res, upperhull = addTriangle(upperhull, true, res, x, y);
+        res, lowerhull = addTriangle(lowerhull, false, res, x, y);
+        
+
+    }
+    console.log(lowerhull);
+    console.log(upperhull);
+    console.log(res);
+}
+
+function addTriangle(hull, pos, res, x, y){
+    for (let j = hull.length-1; j >= 3; j -= 2){
+        let x1 = hull[j-3];
+        let y1 = hull[j-2];
+        let x2 = hull[j-1];
+        let y2 = hull[j];
+        if (isAbove(x, y, x1, y1, x2, y2) == pos){
+            let tripos = [x1, y1, x2, y2, x, y];
+            let tri = new triangle(tripos);
+            res.push(tri);
+            hull.pop();
+            hull.pop();
         }
     }
+    hull.push(x);
+    hull.push(y);
+    return res, hull;
 }
+
+function addFirstTriangle(Arr, res){
+    // Add first triangle
+    let upperhull = [];
+    let lowerhull = []
+
+    upperhull = upperhull.concat(Arr.slice(0, 2));
+    if (Arr[1] < upperhull[1]){
+        upperhull = upperhull.concat(Arr.slice(2, 4));
+    } else {
+        lowerhull = lowerhull.concat(Arr.slice(2, 4));
+    }
+    let splice = Arr.slice(4, 6);
+    upperhull = upperhull.concat(splice);
+    lowerhull = lowerhull.concat(splice);
+    tri = new triangle(Arr.splice(0, 6))
+    res.push(tri);
+    return [res, upperhull, lowerhull];
+}
+
+
+triangulate([1, 2, 2, 1, 3, 2, 4, 5, 5, 1, 6, 3]);
+
 /**
  *  Draws the content of the canvas, in this case, one primitive ot
  *  type gl.POINTS, which represents all of the disks in the image.
