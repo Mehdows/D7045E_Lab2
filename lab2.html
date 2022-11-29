@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<script src="lab2.js"></script>
+<html><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<title>Meshes by triangulating point sets</title>
+<style>
+    label {
+        margin-left: 30px;
+    }
+</style>
+
+</head>
+<body>
+
+<h2>Meshes by triangulating points sets</h2>
+
+<noscript><p><b>Sorry, but this page requires JavaScript.</b></p></noscript>
+
+<p>
+    <label><b>Coloring:</b>&nbsp;<select id="colorChoice">
+        <option value="same">Same</option>
+        <option value="distance">Distance</option>
+        <option value="4_coloring">4 coloring</option>
+    </select></label>
+    <label><b>Set Size:</b><input 
+        type="range" 
+        min="3" 
+        max="100" 
+        value="50" 
+        class="slider" 
+        id="setSize">
+    </label>
+</p>
+
+<div id="canvas-holder">
+<canvas id="webglcanvas" width="800" height="600"></canvas>
+</div>
+
+
+</body>
+</html>
