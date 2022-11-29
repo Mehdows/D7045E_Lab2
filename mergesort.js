@@ -16,7 +16,7 @@ class triangle{
 
 
 function isAbove(x, y, x1, y1, x2, y2){
-    return (y - y1) * (x2 - x1) - (x - x1) * (y2 - y1) > 0;
+    return ((y - y1) * (x2 - x1) - (x - x1) * (y2 - y1) > 0);
 }
 
 function triangulate(sortedArr){
@@ -24,7 +24,52 @@ function triangulate(sortedArr){
     let res = [];
     let lowerhull = [];
     let upperhull = [];
+
     // Add first triangle
+    [res, upperhull, lowerhull] = addFirstTriangle(Arr, res);
+    console.log(lowerhull);
+    console.log(upperhull);
+    // Add rest of triangles
+    for (let i = 0; i < Arr.length; i += 2){
+        console.log(Arr[i], Arr[i+1]);
+        x = Arr[i];
+        y = Arr[i+1];
+        
+        res, upperhull = addTriangle(upperhull, true, res, x, y);
+        res, lowerhull = addTriangle(lowerhull, false, res, x, y);
+        lowerhull.push(x);
+        lowerhull.push(y);
+        upperhull.push(x);
+        upperhull.push(y);
+
+    }
+    console.log(lowerhull);
+    console.log(upperhull);
+    console.log(res);
+}
+
+function addTriangle(hull, pos, res, x3, y3){
+    for (let j = 0; j < hull.length-2; j += 2){
+        x1 = hull[j];
+        y1 = hull[j+1];
+        x2 = hull[j+2];
+        y2 = hull[j+3];
+        
+        if (isAbove(x3, y3, x2, y2, x1, y1) == pos){
+            let pos = [x1, y1, x2, y2, x3, y3];
+            let tri = new triangle(pos);
+            res.push(tri);
+            hull.splice(j+2, 2);
+        }
+    }
+    return res, hull;
+}
+
+function addFirstTriangle(Arr, res){
+    // Add first triangle
+    let upperhull = [];
+    let lowerhull = []
+
     upperhull = upperhull.concat(Arr.slice(0, 2));
     if (Arr[1] < upperhull[1]){
         upperhull = upperhull.concat(Arr.slice(2, 4));
@@ -36,38 +81,8 @@ function triangulate(sortedArr){
     lowerhull = lowerhull.concat(splice);
     tri = new triangle(Arr.splice(0, 6))
     res.push(tri);
-    // Add rest of triangles
-    for (let i = 0; i < Arr.length; i += 2){
-        //console.log(res[i])
-        x1 = res[i].getPosition()[4];
-        y1 = res[i].getPosition()[5];
-        for (let j = 0; j < upperhull.length-2; j += 2){
-            x2 = upperhull[j];
-            y2 = upperhull[j+1];
-            x3 = upperhull[j+2];
-            y3 = upperhull[j+3];
-            if (!isAbove()){
-                tri = new triangle(x1, y1, x2, y2, x3, y3);
-                res.push(tri);
-                upperhull.splice(j, j+3);
-            }
-        }
-        for (let j = 0; j < lowerhull.length-2; j += 2){
-            x2 = lowerhull[j];
-            y2 = lowerhull[j+1];
-            x3 = lowerhull[j+2];
-            y3 = lowerhull[j+3];
-            if (isAbove()){
-                tri = new triangle(x1, y1, x2, y2, x3, y3);
-                res.push(tri);
-                lowerhull.splice(j, j+3);
-            }
-        }
-    }
-    console.log(Arr);
-    console.log(upperhull);
-    console.log(lowerhull);
-    console.log(res);
+    return [res, upperhull, lowerhull];
 }
 
-triangulate([1, 2, 2, 1, 3, 2, 4, 5, 5, 1]);
+
+triangulate([1, 2, 2, 1, 3, 2, 4, 5, 5, 1, 6, 3]);
