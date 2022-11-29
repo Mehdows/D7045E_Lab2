@@ -160,7 +160,7 @@ class triangle{
         this.position = pos;
         this.pointers = [];
     }
-    addPointer(pointer){
+    setPointer(pointer){
         this.pointers.push(pointer);
     }
     getPointers(){
@@ -186,18 +186,12 @@ function triangulate(sortedArr){
     [res, upperhull, lowerhull] = addFirstTriangle(Arr, res);
     // Add rest of triangles
     for (let i = 0; i < Arr.length; i += 2){
-        console.log(Arr[i], Arr[i+1]);
         let x = Arr[i];
         let y = Arr[i+1];
-        console.log(upperhull, lowerhull);
         res, upperhull = addTriangle(upperhull, true, res, x, y);
         res, lowerhull = addTriangle(lowerhull, false, res, x, y);
-        
-
     }
-    console.log(lowerhull);
-    console.log(upperhull);
-    console.log(res);
+    return res;
 }
 
 function addTriangle(hull, pos, res, x, y){
@@ -233,13 +227,10 @@ function addFirstTriangle(Arr, res){
     let splice = Arr.slice(4, 6);
     upperhull = upperhull.concat(splice);
     lowerhull = lowerhull.concat(splice);
-    tri = new triangle(Arr.splice(0, 6))
+    let tri = new triangle(Arr.splice(0, 6))
     res.push(tri);
     return [res, upperhull, lowerhull];
 }
-
-
-triangulate([1, 2, 2, 1, 3, 2, 4, 5, 5, 1, 6, 3]);
 
 /**
  *  Draws the content of the canvas, in this case, one primitive ot
@@ -263,11 +254,13 @@ function draw() {
     }
     let inArr = [... pointCoords.slice(0, 2*setSize)];
     let res = mergeSort(inArr);
-    let sortedPointCoords = new Float32Array(setSize*2);
-    for (let i = 0; i < res.length; i++){
-        sortedPointCoords[i] = res[i];
-    }
+    let sortedPointCoords = new Float32Array(res);
+    let triangleList = triangulate(sortedPointCoords);
+    let triangleCoords = new Float32Array(triangleList.length*6);
+    triangleCoords = trianglesToList(triangleList);
 
+    
+    
 
     /* Set up values for the "coords" attribute, giving point's positions */
 
@@ -275,6 +268,15 @@ function draw() {
     gl.bufferData(gl.ARRAY_BUFFER, sortedPointCoords, gl.STREAM_DRAW);
     gl.vertexAttribPointer(attributeCoords, 2, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(attributeCoords); 
+
+    /* Set up values for the "lines" */
+    gl.bindBuffer(gl.ARRAY_BUFFER, bufferCoords);
+    gl.bufferData(gl.ARRAY_BUFFER, triangleCoords, gl.STREAM_DRAW);
+    gl.vertexAttribPointer(attributeCoords, 2, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(attributeCoords);
+
+    drawTriangles(triangleCoords);
+
    
     /* Set up values for the "color" attribute */
     
@@ -287,7 +289,22 @@ function draw() {
     /* Draw all the points with one command. */
    
     gl.drawArrays(gl.POINTS, 0, setSize);
-    gl.drawArrays(gl.LINE_LOOP, 0, setSize);
+
+    
+}
+function drawTriangles(triangles){
+    for(let i = 0; i < triangles.length/2; i += 3){
+        gl.drawArrays(gl.LINE_LOOP, i, 3);
+    }
+}
+
+function trianglesToList(triangles){
+    let res = [];
+    for(let i = 0; i < triangles.length; i += 6){
+        let tri = triangles[i].getPosition();
+        res = res.concat(tri);
+    }
+    return res;
 }
 
 /**
