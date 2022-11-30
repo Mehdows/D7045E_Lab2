@@ -118,6 +118,13 @@ function removeY(){
         pointCoords[i] = pointCoords[i] - pointCoords[i+1]*0.01;
     }
 }
+function fixVerticeSoup(Arr){
+    let res = [];
+    for (let i = 0; i < Arr.length; i++){
+        res = res.concat(Arr[i].);
+    }
+
+}
 
 
 function mergeSort(arr){
@@ -159,8 +166,9 @@ class triangle{
     constructor(pos){
         this.position = pos;
         this.pointers = [];
+        this.color = [0.4, 0.2, 0.5];
     }
-    setPointer(pointer){
+    addPointer(pointer){
         this.pointers.push(pointer);
     }
     getPointers(){
@@ -172,35 +180,39 @@ class triangle{
 }
 
 
-function isAbove(x, y, x1, y1, x2, y2){
-    return ((y - y1) * (x2 - x1) - (x - x1) * (y2 - y1) > 0);
+function isLeft(x, y, x1, y1, x2, y2){
+    return (x1-x)*(y2-y) - (y1-y)*(x2-x) > 0;
+    
+}
+function isRight(x, y, x1, y1, x2, y2){
+    return (x1-x)*(y2-y) - (y1-y)*(x2-x) < 0;
 }
 
 function triangulate(sortedArr){
     let Arr = [...sortedArr];
     let res = [];
-    let lowerhull = [];
-    let upperhull = [];
+    let starthull =[...Arr.splice(0, 4)];
+    let lowerhull = [...starthull];
+    let upperhull = [...starthull];
 
-    // Add first triangle
-    [res, upperhull, lowerhull] = addFirstTriangle(Arr, res);
-    // Add rest of triangles
     for (let i = 0; i < Arr.length; i += 2){
         let x = Arr[i];
         let y = Arr[i+1];
-        res, upperhull = addTriangle(upperhull, true, res, x, y);
-        res, lowerhull = addTriangle(lowerhull, false, res, x, y);
+        res, upperhull = checkUpperhull(upperhull, res, x, y);
+        res, lowerhull = checkLowerhull(lowerhull, res, x, y);
+        
+
     }
     return res;
 }
 
-function addTriangle(hull, pos, res, x, y){
+function checkUpperhull(hull, res, x, y){
     for (let j = hull.length-1; j >= 3; j -= 2){
-        let x1 = hull[j-3];
-        let y1 = hull[j-2];
-        let x2 = hull[j-1];
-        let y2 = hull[j];
-        if (isAbove(x, y, x1, y1, x2, y2) == pos){
+        let x2 = hull[j-3];
+        let y2 = hull[j-2];
+        let x1 = hull[j-1];
+        let y1 = hull[j];
+        if (isRight(x, y, x1, y1, x2, y2)){
             let tripos = [x1, y1, x2, y2, x, y];
             let tri = new triangle(tripos);
             res.push(tri);
@@ -213,24 +225,27 @@ function addTriangle(hull, pos, res, x, y){
     return res, hull;
 }
 
-function addFirstTriangle(Arr, res){
-    // Add first triangle
-    let upperhull = [];
-    let lowerhull = []
+function checkLowerhull(hull, res, x, y){
+    for(let j = hull.length-1; j >= 3; j -= 2){
+        
+        let x2 = hull[j-3];
+        let y2 = hull[j-2];
+        let x1 = hull[j-1];
+        let y1 = hull[j];
 
-    upperhull = upperhull.concat(Arr.slice(0, 2));
-    if (Arr[1] < upperhull[1]){
-        upperhull = upperhull.concat(Arr.slice(2, 4));
-    } else {
-        lowerhull = lowerhull.concat(Arr.slice(2, 4));
+        if (isLeft(x, y, x1, y1, x2, y2)){
+            let tripos = [x1, y1, x2, y2, x, y];
+            let tri = new triangle(tripos);
+            res.push(tri);
+            hull.pop();
+            hull.pop();
+        }
     }
-    let splice = Arr.slice(4, 6);
-    upperhull = upperhull.concat(splice);
-    lowerhull = lowerhull.concat(splice);
-    let tri = new triangle(Arr.splice(0, 6))
-    res.push(tri);
-    return [res, upperhull, lowerhull];
+    hull.push(x);
+    hull.push(y);
+    return res, hull;
 }
+
 
 /**
  *  Draws the content of the canvas, in this case, one primitive ot
@@ -245,10 +260,19 @@ function draw() {
     /* Get options from the user interface. */
 
     let setSize = document.getElementById("setSize").value;
-    let  color = document.getElementById("colorChoice").value;
+    let color = document.getElementById("colorChoice").value;
     let colorChoice;
     switch (color) {
-        case "random":
+        case "same":
+            colorChoice = attributeColor;
+            break;
+        case "distance":
+            colorChoice = distanceColor;
+            break;
+        case "4_coloring":
+            colorChoice = color4;
+            break;
+        default:
             colorChoice = attributeColor;
             break;
     }
@@ -256,51 +280,38 @@ function draw() {
     let res = mergeSort(inArr);
     let sortedPointCoords = new Float32Array(res);
     let triangleList = triangulate(sortedPointCoords);
-    let triangleCoords = new Float32Array(triangleList.length*6);
-    triangleCoords = trianglesToList(triangleList);
+    let triangleCoords = new Float32Array(trianglesToList(triangleList));
 
     
     
 
     /* Set up values for the "coords" attribute, giving point's positions */
-
     gl.bindBuffer(gl.ARRAY_BUFFER, bufferCoords);
-    gl.bufferData(gl.ARRAY_BUFFER, sortedPointCoords, gl.STREAM_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, pointCoords, gl.STREAM_DRAW);
     gl.vertexAttribPointer(attributeCoords, 2, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(attributeCoords); 
-
-    /* Set up values for the "lines" */
-    gl.bindBuffer(gl.ARRAY_BUFFER, bufferCoords);
-    gl.bufferData(gl.ARRAY_BUFFER, triangleCoords, gl.STREAM_DRAW);
-    gl.vertexAttribPointer(attributeCoords, 2, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(attributeCoords);
-
-    drawTriangles(triangleCoords);
-
-   
-    /* Set up values for the "color" attribute */
-    
     gl.enableVertexAttribArray(colorChoice); 
-    
-    /* Set the pointsize uniform variable */
-    
+    gl.enableVertexAttribArray(attributeCoords); 
     gl.uniform1f( uniformPointsize, POINT_SIZE);
-    
-    /* Draw all the points with one command. */
-   
     gl.drawArrays(gl.POINTS, 0, setSize);
-
     
+
+    gl.bufferData(gl.ARRAY_BUFFER, triangleCoords, gl.STREAM_DRAW);
+    //gl.vertexAttribPointer(attributeCoords, 2, gl.FLOAT, false, 0, 0);
+    drawTriangleLine(triangleCoords);
+    
+
+
 }
-function drawTriangles(triangles){
-    for(let i = 0; i < triangles.length/2; i += 3){
+
+function drawTriangleLine(arr){
+    for(let i = 0; i < arr.length/2; i += 3){	
         gl.drawArrays(gl.LINE_LOOP, i, 3);
     }
 }
 
 function trianglesToList(triangles){
     let res = [];
-    for(let i = 0; i < triangles.length; i += 6){
+    for(let i = 0; i < triangles.length; i++){
         let tri = triangles[i].getPosition();
         res = res.concat(tri);
     }
@@ -389,13 +400,13 @@ function init() {
         return;
     }
     document.getElementById("setSize").onchange = function() {
-        createPointData();
+        //createPointData();
         draw();
     };
     document.getElementById("colorChoice").onchange = function() {
         draw();
     };
-    createPointData();
+    //createPointData();
     draw();
 }
 
