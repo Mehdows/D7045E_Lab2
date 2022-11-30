@@ -121,7 +121,7 @@ function removeY(){
 function fixVerticeSoup(Arr){
     let res = [];
     for (let i = 0; i < Arr.length; i++){
-        res = res.concat(Arr[i].);
+        //res = res.concat(Arr[i].);
     }
 
 }
@@ -166,12 +166,18 @@ class triangle{
     constructor(pos){
         this.position = pos;
         this.pointers = [];
-        this.color = [0.4, 0.2, 0.5];
+        this.color = [0, 0, 0];
     }
-    addPointer(pointer){
+    setColor(color){
+        this.color = color;
+    }
+    getColor(){
+        return this.color;
+    }
+    setAdjecent(pointer){
         this.pointers.push(pointer);
     }
-    getPointers(){
+    getAdjecent(){
         return this.pointers;
     }
     getPosition(){
@@ -261,43 +267,46 @@ function draw() {
 
     let setSize = document.getElementById("setSize").value;
     let color = document.getElementById("colorChoice").value;
-    let colorChoice;
-    switch (color) {
-        case "same":
-            colorChoice = attributeColor;
-            break;
-        case "distance":
-            colorChoice = distanceColor;
-            break;
-        case "4_coloring":
-            colorChoice = color4;
-            break;
-        default:
-            colorChoice = attributeColor;
-            break;
-    }
+    
     let inArr = [... pointCoords.slice(0, 2*setSize)];
     let res = mergeSort(inArr);
     let sortedPointCoords = new Float32Array(res);
     let triangleList = triangulate(sortedPointCoords);
     let triangleCoords = new Float32Array(trianglesToList(triangleList));
 
-    
-    
+    gl.bindBuffer(gl.ARRAY_BUFFER, bufferCoords);
+    gl.bufferData(gl.ARRAY_BUFFER, triangleCoords, gl.STREAM_DRAW);
+    gl.vertexAttribPointer(attributeCoords, 2, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(attributeCoords); 
+    gl.disableVertexAttribArray(attributeColor);
+
+    switch (color) {
+        case "same":
+            gl.vertexAttrib3f(attributeColor, 1, 0, 0);
+            drawTriangle(triangleCoords);
+            break;
+        case "distance":
+            distanceColoring(triangleList, sortedPointCoords);
+            break;
+        case "4_coloring":
+            color4(triangleList);
+            break;
+    }
+    gl.vertexAttrib3f(attributeColor, 0, 0, 0);
+    gl.bufferData(gl.ARRAY_BUFFER, triangleCoords, gl.STREAM_DRAW);
 
     /* Set up values for the "coords" attribute, giving point's positions */
-    gl.bindBuffer(gl.ARRAY_BUFFER, bufferCoords);
-    gl.bufferData(gl.ARRAY_BUFFER, pointCoords, gl.STREAM_DRAW);
-    gl.vertexAttribPointer(attributeCoords, 2, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(colorChoice); 
-    gl.enableVertexAttribArray(attributeCoords); 
+    
     gl.uniform1f( uniformPointsize, POINT_SIZE);
+    gl.bufferData(gl.ARRAY_BUFFER, sortedPointCoords, gl.STREAM_DRAW);
     gl.drawArrays(gl.POINTS, 0, setSize);
     
 
     gl.bufferData(gl.ARRAY_BUFFER, triangleCoords, gl.STREAM_DRAW);
     //gl.vertexAttribPointer(attributeCoords, 2, gl.FLOAT, false, 0, 0);
     drawTriangleLine(triangleCoords);
+
+    
     
 
 
@@ -308,6 +317,11 @@ function drawTriangleLine(arr){
         gl.drawArrays(gl.LINE_LOOP, i, 3);
     }
 }
+function drawTriangle(arr){
+    for(let i = 0; i < arr.length/2; i += 3){	
+        gl.drawArrays(gl.TRIANGLES, i, 3);
+    }
+}
 
 function trianglesToList(triangles){
     let res = [];
@@ -316,6 +330,109 @@ function trianglesToList(triangles){
         res = res.concat(tri);
     }
     return res;
+}
+
+function distanceColoring(triangles, point){
+    let len = point.length;
+    let p = Math.floor(Math.random() * len/2 ) * 2;
+    let x = point[p];
+    let y = point[p+1];
+    let width = canvas.width;
+    let height = canvas.height;
+    let longestDist = Math.sqrt(Math.pow(width, 2) + Math.pow(height, 2));
+
+    let trianglesPos = getTrianglesPos(triangles);
+    for(let i = 0; i < triangles.length; i += 1){
+        let triangleX = trianglesPos[i*2];
+        let triangleY = trianglesPos[i*2+1];
+        let dist = Math.sqrt(Math.pow(triangleX - x, 2) + Math.pow(triangleY - y, 2));
+        let color = 1 - (dist / longestDist);
+        gl.vertexAttrib3f(attributeColor, color, color, color);
+        gl.drawArrays(gl.TRIANGLES, i*3, 3);
+    }
+}
+
+
+function getTrianglesPos(triangle){
+    let res = [];
+    for(let i = 0; i < triangle.length; i++){
+        let tri = triangle[i].getPosition();
+        let centerX = (tri[0] + tri[2] + tri[4]) / 3;
+        let centerY = (tri[1] + tri[3] + tri[5]) / 3;
+        res.push(centerX);
+        res.push(centerY);
+    }
+    return res
+}
+
+function setAdjecentTriangles(triangleList){
+    for(let i = 0; i < triangleList.length; i++){
+        let tri = triangleList[i];
+        let triPos = tri.getPosition();
+        for(let j = 0; j < triangleList.length; j++){
+            let tri2 = triangleList[j];
+            let tri2Pos = tri2.getPosition();
+            if(tri == tri2){
+                continue;
+            }
+            let count = 0;
+            
+            for(let k = 0; k < 6; k += 2){
+                for(let l = 0; l < 6; l += 2){
+                    if(triPos[k] == tri2Pos[l] && triPos[k+1] == tri2Pos[l+1]){
+                        count += 1;
+                    }
+                }
+            }
+            if(count == 2){
+                tri.setAdjecent(tri2);
+            }
+        }
+        //triangleList[i] = tri;
+    }
+    return triangleList;
+}
+
+function color4(triangleList){
+    triangleList = setAdjecentTriangles(triangleList);
+    for(let i = 0; i < triangleList.length; i++){
+        let colorList = [[1,0,0], [0,1,0], [0,0,1], [1,1,0]];
+        let tri = triangleList[i];
+        let len = tri.getAdjecent().length;
+        for (let j = 0; j < len; j++){
+            let adj = tri.getAdjecent()[j];
+            let color = adj.getColor();
+            let included = includes(colorList, color);
+            console.log(color, included);
+            if(included){
+                colorList.splice(colorList.indexOf(color), 1);
+                console.log(colorList);
+            }
+            
+        }
+        let randomindex = Math.floor(Math.random() * colorList.length-1);
+        tri.setColor(colorList[randomindex]);
+    }
+    paintTriangles(triangleList);
+}
+
+function includes(list, itemlist){
+    for(let i = 0; i < list.length; i++){
+        let item = list[i];
+        if(item[0] == itemlist[0] && item[1] == itemlist[1] && item[2] == itemlist[2]){
+            return true;
+        }
+    }
+    return false;
+}
+
+function paintTriangles(triangles){
+    for(let i = 0; i < triangles.length; i++){
+        let tri = triangles[i];
+        let color = tri.getColor();
+        gl.vertexAttrib3f(attributeColor, color[0], color[1], color[2]);
+        gl.drawArrays(gl.TRIANGLES, i*3, 3);
+    }
 }
 
 /**
