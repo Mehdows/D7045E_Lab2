@@ -402,15 +402,15 @@ function color4(triangleList){
         for (let j = 0; j < len; j++){
             let adj = tri.getAdjecent()[j];
             let color = adj.getColor();
-            let included = includes(colorList, color);
-            console.log(color, included);
+            let index = 0;
+            let included = false;
+            [index, included] = includes(colorList, color);
             if(included){
-                colorList.splice(colorList.indexOf(color), 1);
-                console.log(colorList);
+                colorList.splice(index, 1);
             }
             
         }
-        let randomindex = Math.floor(Math.random() * colorList.length-1);
+        let randomindex = Math.floor(Math.random() * colorList.length);
         tri.setColor(colorList[randomindex]);
     }
     paintTriangles(triangleList);
@@ -420,10 +420,10 @@ function includes(list, itemlist){
     for(let i = 0; i < list.length; i++){
         let item = list[i];
         if(item[0] == itemlist[0] && item[1] == itemlist[1] && item[2] == itemlist[2]){
-            return true;
+            return [i,true];
         }
     }
-    return false;
+    return [-1,false];
 }
 
 function paintTriangles(triangles){
